@@ -6,6 +6,9 @@ import { join } from 'path';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import * as Joi from 'joi';
 import { Restaurant } from './restaurants/entities/restaurant.entitiy';
+import { UsersModule } from './users/users.module';
+import { CommonModule } from './common/common.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -31,12 +34,14 @@ import { Restaurant } from './restaurants/entities/restaurant.entitiy';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
-      entities: [Restaurant],
+      entities: [User],
+      // autoLoadEntities: true
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
     }),
-    RestaurantsModule,
+    UsersModule,
+    CommonModule,
   ],
   controllers: [],
   providers: [],

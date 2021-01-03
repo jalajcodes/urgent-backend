@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
 import { CreateAccountInput } from './dtos/create-account.dto';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
@@ -9,6 +11,8 @@ import { User } from './entities/user.entity';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly usersRespository: Repository<User>,
+    private readonly config: ConfigService,
+    private readonly jwt: JwtService,
   ) {}
 
   async createAccount({
@@ -44,10 +48,10 @@ export class UsersService {
       if (!user) return { success: false, error: 'Invalid Credentials' };
       const passwordMatches = await user.checkPassword(password);
       if (!passwordMatches) return { success: false, error: 'Invalid Credentials' };
-
+      const token = this.jwt.sign(user.id);
       return {
         success: true,
-        token: 'asasasas',
+        token,
       };
     } catch (error) {
       return {

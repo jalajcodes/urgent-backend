@@ -2,4 +2,4 @@
 
 Backend for Urgent App. (NestJS, Typescript, PostgreSQL, GraphQL, Jest, Cypress)
 
-> Commit messages follow gitmoji.dev emoji guide 😉
+> Commit messages follow Conventional Commit Guide 😉

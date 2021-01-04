@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NestMiddleware } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from './jwt.service';
@@ -14,7 +14,9 @@ export class JwtMiddleware implements NestMiddleware {
         if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
           req['user'] = { id: decoded['id'] };
         }
-      } catch (error) {}
+      } catch (error) {
+        throw new HttpException(error, HttpStatus.FORBIDDEN);
+      }
       console.log('JWT Middleware Ran');
     }
 

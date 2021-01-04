@@ -5,7 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import * as Joi from 'joi';
 import { UsersModule } from './users/users.module';
-import { CommonModule } from './common/common.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
@@ -14,7 +13,6 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-
       envFilePath: process.env.NODE_ENV === 'dev' ? '.env.dev' : '.env.test',
       ignoreEnvFile: process.env.NODE_ENV === 'production',
       validationSchema: Joi.object({
@@ -51,7 +49,6 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
       privateKey: process.env.SECRET_KEY,
     }),
     UsersModule,
-    CommonModule,
   ],
   controllers: [],
   providers: [],
@@ -59,8 +56,8 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(JwtMiddleware).forRoutes({
-      path: '/graphql',
-      method: RequestMethod.ALL,
+      path: '*',
+      method: RequestMethod.POST,
     });
   }
 }

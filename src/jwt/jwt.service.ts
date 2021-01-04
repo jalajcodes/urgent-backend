@@ -16,4 +16,8 @@ export class JwtService {
       expiresIn: this.config.get('JWT_EXPIRY'),
     });
   }
+
+  verify(token: string) {
+    return jwt.verify(token, this.options.privateKey);
+  }
 }

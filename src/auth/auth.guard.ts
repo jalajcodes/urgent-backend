@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { UsersService } from 'src/users/users.service';
 
@@ -13,9 +18,12 @@ export class AuthGuard implements CanActivate {
     const userDetails = user
       ? await this.userService.findById(user.id)
       : 'Please Login First';
-
-    // modify the request object to include the detailed user
-    gqlContext.req.user = userDetails; // ugly ugly!!!!!
+    if (!userDetails) throw new NotFoundException('User Not Found Error');
+    /* modify the request object to include the detailed user
+     *
+     * this has to do until I figure out a good way to make userDetails available on request object (using interceptors maybe)
+     */
+    gqlContext.req.user = userDetails;
 
     if (!user) {
       return false;

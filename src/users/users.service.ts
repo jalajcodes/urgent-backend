@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
 import { CreateAccountInput } from './dtos/create-account.dto';
-import { LoginInput, LoginOutput } from './dtos/login.dto';
+import { UpdateProfileInput } from './dtos/update-profile.dto';
+import { LoginInput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { cookieOptions } from './users.config';
 
@@ -67,8 +68,24 @@ export class UsersService {
   }
 
   async findById(id: number): Promise<User> {
-    console.log('db queried');
-
     return this.usersRespository.findOne({ id });
+  }
+
+  async updateProfile(userId: number, { email, password, role }: UpdateProfileInput) {
+    const userProfile = await this.usersRespository.findOne(userId);
+
+    if (email) {
+      userProfile.email = email;
+    }
+
+    if (password) {
+      userProfile.password = password;
+    }
+
+    if (role) {
+      userProfile.role = role;
+    }
+
+    return this.usersRespository.save(userProfile);
   }
 }

@@ -1,9 +1,11 @@
 import { UseGuards } from '@nestjs/common';
-import { Resolver, Query, Mutation, Args, CONTEXT, Context } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateAccountInput, CreateAccountOutput } from './dtos/create-account.dto';
+import { UpdateProfileInput, UpdateProfileOutput } from './dtos/update-profile.dto';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -15,6 +17,28 @@ export class UsersResolver {
   @UseGuards(AuthGuard)
   me(@AuthUser() loggedinUser: User) {
     return loggedinUser;
+  }
+
+  @Query(returns => UserProfileOutput)
+  @UseGuards(AuthGuard)
+  async userProfile(
+    @Args() userProfileInput: UserProfileInput,
+  ): Promise<UserProfileOutput> {
+    try {
+      const user = await this.usersService.findById(userProfileInput.id);
+      if (!user) {
+        throw Error();
+      }
+      return {
+        success: true,
+        user,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
   }
 
   @Mutation(returns => CreateAccountOutput)
@@ -35,5 +59,24 @@ export class UsersResolver {
     @Context() { res },
   ): Promise<LoginOutput> {
     return this.usersService.login(loginInput, res);
+  }
+
+  @Mutation(returns => UpdateProfileOutput)
+  @UseGuards(AuthGuard)
+  async updateProfile(
+    @AuthUser() loggedInUser: User,
+    @Args('input') updateProfileInput: UpdateProfileInput,
+  ): Promise<UpdateProfileOutput> {
+    try {
+      await this.usersService.updateProfile(loggedInUser.id, updateProfileInput);
+      return {
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error,
+      };
+    }
   }
 }

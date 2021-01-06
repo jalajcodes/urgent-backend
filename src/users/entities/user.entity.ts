@@ -1,5 +1,5 @@
 import { Field, InputType, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { BeforeInsert, Column, Entity } from 'typeorm';
+import { AfterLoad, BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
 import { CoreEntity } from '../../common/entities/core.entity';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
@@ -30,13 +30,22 @@ export class User extends CoreEntity {
   @IsEnum(UserRoles)
   role: UserRoles;
 
+  private tempPassword: string;
+  @AfterLoad()
+  private loadTempPassword(): void {
+    this.tempPassword = this.password;
+  }
+
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword(): Promise<void> {
-    try {
-      this.password = await bcrypt.hash(this.password, 10);
-    } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException();
+    if (this.tempPassword !== this.password) {
+      try {
+        this.password = await bcrypt.hash(this.password, 10);
+      } catch (error) {
+        console.log(error);
+        throw new InternalServerErrorException('Something went wrong');
+      }
     }
   }
 
@@ -45,7 +54,7 @@ export class User extends CoreEntity {
       return bcrypt.compare(password, this.password);
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException('Something went wrong');
     }
   }
 }

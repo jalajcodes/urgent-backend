@@ -5,29 +5,37 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import { JwtService } from 'src/jwt/jwt.service';
 import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly userService: UsersService) {}
+  constructor(
+    private readonly userService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
   async canActivate(context: ExecutionContext) {
     const gqlContext = GqlExecutionContext.create(context).getContext();
+    const req = gqlContext.req;
+    const token = req.signedCookies.token;
+    let userDetails;
 
-    const user = gqlContext.req.user;
-    // if user exists on request object (set by jwt middleware) then fetch the userDetails from the DB
-    const userDetails = user
-      ? await this.userService.findById(user.id)
-      : 'Please Login First';
-    if (!userDetails) throw new NotFoundException('User Not Found Error');
-    /* modify the request object to include the detailed user
-     *
-     * this has to do until I figure out a good way to make userDetails available on request object (using interceptors maybe)
-     */
-    gqlContext.req.user = userDetails;
-
-    if (!user) {
-      return false;
+    if (token) {
+      try {
+        const result = this.jwtService.verify(token);
+        if (typeof result === 'object' && result.hasOwnProperty('id')) {
+          userDetails = await this.userService.findById(result['id']);
+          // set user on req object
+          req.user = userDetails.user;
+        }
+      } catch (error) {
+        throw new Error(error);
+      }
     }
-    return true;
+
+    if (userDetails) {
+      return true;
+    }
+    return false;
   }
 }

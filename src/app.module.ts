@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
+import { Verifcation } from './users/entities/verification.entity';
 
 @Module({
   imports: [
@@ -34,7 +35,7 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
-      entities: [User],
+      entities: [User, Verifcation],
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
@@ -53,11 +54,20 @@ import { JwtMiddleware } from './jwt/jwt.middleware';
   controllers: [],
   providers: [],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes({
-      path: '*',
-      method: RequestMethod.POST,
-    });
-  }
-}
+export class AppModule {}
+
+/***********************************************************
+ * all the logic of jwt middleware is now in `auth.guard.ts`
+ * file, as nest doesn't provide a way to run middlewares for
+ * specific resolvers and it doesn't make any sense to
+ * run the middleware on all requests.
+ * *********************************************************/
+
+// export class AppModule implements NestModule {
+//   configure(consumer: MiddlewareConsumer) {
+//     consumer.apply(JwtMiddleware).forRoutes({
+//       path: '*',
+//       method: RequestMethod.POST,
+//     });
+//   }
+// }

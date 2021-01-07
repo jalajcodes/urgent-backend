@@ -9,13 +9,20 @@ export class JwtMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     if (req.signedCookies) {
       const token = req.signedCookies.token;
-      try {
-        const decoded = token ? this.jwtService.verify(token) : '';
-        if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
-          req['user'] = { id: decoded['id'] };
+      if (token) {
+        try {
+          const decoded = this.jwtService.verify(token);
+
+          if (typeof decoded === 'object' && decoded.hasOwnProperty('id')) {
+            req['user'] = { id: decoded['id'] };
+          }
+        } catch (error) {
+          console.log(
+            '🚀 ~ file: jwt.middleware.ts ~ line 21 ~ JwtMiddleware ~ use ~ error',
+            error,
+          );
+          // throw new Error(error);
         }
-      } catch (error) {
-        throw new HttpException(error, HttpStatus.FORBIDDEN);
       }
       console.log('JWT Middleware Ran');
     }

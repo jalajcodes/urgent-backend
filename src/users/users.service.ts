@@ -4,11 +4,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
 import { JwtService } from 'src/jwt/jwt.service';
 import { Repository } from 'typeorm';
-import { CreateAccountInput } from './dtos/create-account.dto';
-import { UpdateProfileInput } from './dtos/update-profile.dto';
-import { LoginInput } from './dtos/login.dto';
+import { CreateAccountInput, CreateAccountOutput } from './dtos/create-account.dto';
+import { UpdateProfileInput, UpdateProfileOutput } from './dtos/update-profile.dto';
+import { UserProfileOutput } from './dtos/user-profile.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { cookieOptions } from './users.config';
+import { CoreOutput } from 'src/common/dtos/core.dto';
 
 @Injectable()
 export class UsersService {
@@ -21,7 +23,7 @@ export class UsersService {
   async createAccount(
     { email, password, role }: CreateAccountInput,
     res: Response,
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<CreateAccountOutput> {
     try {
       const exists = await this.usersRespository.findOne({ email });
       if (exists) {
@@ -43,12 +45,12 @@ export class UsersService {
     }
   }
 
-  async login(
-    { email, password }: LoginInput,
-    res: Response,
-  ): Promise<{ success: boolean; error?: string; token?: string }> {
+  async login({ email, password }: LoginInput, res: Response): Promise<LoginOutput> {
     try {
-      const user = await this.usersRespository.findOne({ email });
+      const user = await this.usersRespository.findOne(
+        { email },
+        { select: ['password', 'id'] },
+      );
       if (!user) return { success: false, error: 'Invalid Credentials' };
       const passwordMatches = await user.checkPassword(password);
       if (!passwordMatches) return { success: false, error: 'Invalid Credentials' };
@@ -67,25 +69,66 @@ export class UsersService {
     }
   }
 
-  async findById(id: number): Promise<User> {
-    return this.usersRespository.findOne({ id });
+  logout(res: Response): CoreOutput {
+    try {
+      res.clearCookie('token');
+      return {
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error,
+      };
+    }
   }
 
-  async updateProfile(userId: number, { email, password, role }: UpdateProfileInput) {
-    const userProfile = await this.usersRespository.findOne(userId);
-
-    if (email) {
-      userProfile.email = email;
+  async findById(id: number): Promise<UserProfileOutput> {
+    try {
+      const user = await this.usersRespository.findOne({ id });
+      if (user) {
+        return {
+          success: true,
+          user,
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: 'User Not Found',
+      };
     }
+  }
 
-    if (password) {
-      userProfile.password = password;
+  async updateProfile(
+    userId: number,
+    { email, password, role }: UpdateProfileInput,
+  ): Promise<UpdateProfileOutput> {
+    try {
+      const userProfile = await this.usersRespository.findOne(userId);
+
+      if (email) {
+        userProfile.email = email;
+      }
+
+      if (password) {
+        userProfile.password = password;
+      }
+
+      if (role) {
+        userProfile.role = role;
+      }
+
+      await this.usersRespository.save(userProfile);
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error,
+      };
     }
-
-    if (role) {
-      userProfile.role = role;
-    }
-
-    return this.usersRespository.save(userProfile);
   }
 }

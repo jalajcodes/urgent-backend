@@ -7,8 +7,9 @@ type User {
   createdAt: DateTime!
   updatedAt: DateTime!
   email: String!
-  password: String!
+  password: String
   role: UserRoles!
+  verified: Boolean!
 }
 
 """
@@ -20,6 +21,11 @@ enum UserRoles {
   Client
   Owner
   Delivery
+}
+
+type CoreOutput {
+  error: String
+  success: Boolean!
 }
 
 type CreateAccountOutput {
@@ -52,18 +58,19 @@ type Query {
 type Mutation {
   createAccount(input: CreateAccountInput!): CreateAccountOutput!
   login(input: LoginInput!): LoginOutput!
+  logout: CoreOutput!
   updateProfile(input: UpdateProfileInput!): UpdateProfileOutput!
 }
 
 input CreateAccountInput {
   email: String!
-  password: String!
+  password: String
   role: UserRoles!
 }
 
 input LoginInput {
   email: String!
-  password: String!
+  password: String
 }
 
 input UpdateProfileInput {

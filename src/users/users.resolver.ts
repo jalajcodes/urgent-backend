@@ -8,6 +8,7 @@ import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
+import { CoreOutput } from 'src/common/dtos/core.dto';
 
 @Resolver(of => User)
 export class UsersResolver {
@@ -24,21 +25,7 @@ export class UsersResolver {
   async userProfile(
     @Args() userProfileInput: UserProfileInput,
   ): Promise<UserProfileOutput> {
-    try {
-      const user = await this.usersService.findById(userProfileInput.id);
-      if (!user) {
-        throw Error();
-      }
-      return {
-        success: true,
-        user,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: 'User not found',
-      };
-    }
+    return this.usersService.findById(userProfileInput.id);
   }
 
   @Mutation(returns => CreateAccountOutput)
@@ -46,11 +33,7 @@ export class UsersResolver {
     @Args('input') createAccountInput: CreateAccountInput,
     @Context() { res },
   ): Promise<CreateAccountOutput> {
-    try {
-      return this.usersService.createAccount(createAccountInput, res);
-    } catch (error) {
-      return { error, success: false };
-    }
+    return this.usersService.createAccount(createAccountInput, res);
   }
 
   @Mutation(returns => LoginOutput)
@@ -61,22 +44,17 @@ export class UsersResolver {
     return this.usersService.login(loginInput, res);
   }
 
+  @Mutation(returns => CoreOutput)
+  logout(@Context() { res }): CoreOutput {
+    return this.usersService.logout(res);
+  }
+
   @Mutation(returns => UpdateProfileOutput)
   @UseGuards(AuthGuard)
   async updateProfile(
     @AuthUser() loggedInUser: User,
     @Args('input') updateProfileInput: UpdateProfileInput,
   ): Promise<UpdateProfileOutput> {
-    try {
-      await this.usersService.updateProfile(loggedInUser.id, updateProfileInput);
-      return {
-        success: true,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error,
-      };
-    }
+    return this.usersService.updateProfile(loggedInUser.id, updateProfileInput);
   }
 }

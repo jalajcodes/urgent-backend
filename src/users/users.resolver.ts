@@ -9,6 +9,7 @@ import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { CoreOutput } from 'src/common/dtos/core.dto';
+import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Resolver(of => User)
 export class UsersResolver {
@@ -56,5 +57,10 @@ export class UsersResolver {
     @Args('input') updateProfileInput: UpdateProfileInput,
   ): Promise<UpdateProfileOutput> {
     return this.usersService.updateProfile(loggedInUser.id, updateProfileInput);
+  }
+
+  @Mutation(returns => VerifyEmailOutput)
+  verify(@Args('input') {code}: VerifyEmailInput): Promise<VerifyEmailOutput> {
+    return this.usersService.verifyEmail(code);
   }
 }

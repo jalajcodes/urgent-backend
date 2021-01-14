@@ -11,11 +11,15 @@ import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { cookieOptions } from './users.config';
 import { CoreOutput } from 'src/common/dtos/core.dto';
+import { Verifcation } from './entities/verification.entity';
+import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User) private readonly usersRespository: Repository<User>,
+    @InjectRepository(User) private readonly usersRepository: Repository<User>,
+    @InjectRepository(Verifcation)
+    private readonly verifRepository: Repository<Verifcation>,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
   ) {}
@@ -25,15 +29,24 @@ export class UsersService {
     res: Response,
   ): Promise<CreateAccountOutput> {
     try {
-      const exists = await this.usersRespository.findOne({ email });
+      const exists = await this.usersRepository.findOne({ email });
       if (exists) {
         return { success: false, error: 'Unable to create account' };
       }
-      const user = await this.usersRespository.save(
-        this.usersRespository.create({ email, password, role }),
+      const user = await this.usersRepository.save(
+        this.usersRepository.create({ email, password, role }),
       );
+      // create verification code
+      this.verifRepository.save(
+        this.verifRepository.create({
+          user,
+        }),
+      );
+      // create token
       const token = this.jwt.sign(user.id);
+      // send token via cookie
       res.cookie('token', token, cookieOptions);
+
       return {
         success: true,
       };
@@ -47,7 +60,7 @@ export class UsersService {
 
   async login({ email, password }: LoginInput, res: Response): Promise<LoginOutput> {
     try {
-      const user = await this.usersRespository.findOne(
+      const user = await this.usersRepository.findOne(
         { email },
         { select: ['password', 'id'] },
       );
@@ -85,7 +98,7 @@ export class UsersService {
 
   async findById(id: number): Promise<UserProfileOutput> {
     try {
-      const user = await this.usersRespository.findOne({ id });
+      const user = await this.usersRepository.findOne({ id });
       if (user) {
         return {
           success: true,
@@ -105,21 +118,29 @@ export class UsersService {
     { email, password, role }: UpdateProfileInput,
   ): Promise<UpdateProfileOutput> {
     try {
-      const userProfile = await this.usersRespository.findOne(userId);
+      const user = await this.usersRepository.findOne(userId);
 
       if (email) {
-        userProfile.email = email;
+        user.email = email;
+        // reset verified status
+        user.verified = false;
+        // create verification code
+        this.verifRepository.save(
+          this.verifRepository.create({
+            user,
+          }),
+        );
       }
 
       if (password) {
-        userProfile.password = password;
+        user.password = password;
       }
 
       if (role) {
-        userProfile.role = role;
+        user.role = role;
       }
 
-      await this.usersRespository.save(userProfile);
+      await this.usersRepository.save(user);
 
       return {
         success: true,
@@ -130,5 +151,24 @@ export class UsersService {
         error,
       };
     }
+  }
+
+  async verifyEmail(code: string): Promise<VerifyEmailOutput> {
+    try {
+      const verification = await this.verifRepository.findOne({code}, {relations: ['user']});
+      if(verification) {
+        verification.user.verified = true;
+        await this.usersRepository.save(verification.user);
+        await this.verifRepository.delete(verification.id);
+        return {success: true}
+      }
+      return {success: false, error: 'Unable to Verify Email'}
+    } catch (error) {
+      return {
+        success: false,
+        error
+      }
+    }
+
   }
 }

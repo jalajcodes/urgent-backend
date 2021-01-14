@@ -50,6 +50,11 @@ type UserProfileOutput {
   user: User
 }
 
+type VerifyEmailOutput {
+  error: String
+  success: Boolean!
+}
+
 type Query {
   me: User!
   userProfile(id: Float!): UserProfileOutput!
@@ -60,6 +65,7 @@ type Mutation {
   login(input: LoginInput!): LoginOutput!
   logout: CoreOutput!
   updateProfile(input: UpdateProfileInput!): UpdateProfileOutput!
+  verify(input: VerifyEmailInput!): VerifyEmailOutput!
 }
 
 input CreateAccountInput {
@@ -70,11 +76,15 @@ input CreateAccountInput {
 
 input LoginInput {
   email: String!
-  password: String
+  password: String!
 }
 
 input UpdateProfileInput {
   email: String
   password: String
   role: UserRoles
+}
+
+input VerifyEmailInput {
+  code: String!
 }

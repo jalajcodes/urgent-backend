@@ -25,6 +25,8 @@ export class AuthGuard implements CanActivate {
         const result = this.jwtService.verify(token);
         if (typeof result === 'object' && result.hasOwnProperty('id')) {
           userDetails = await this.userService.findById(result['id']);
+          // password is not selected by default, so make it null
+          userDetails.user.password = null;
           // set user on req object
           req.user = userDetails.user;
         }

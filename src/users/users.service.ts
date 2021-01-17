@@ -12,7 +12,8 @@ import { User } from './entities/user.entity';
 import { cookieOptions } from './users.config';
 import { CoreOutput } from 'src/common/dtos/core.dto';
 import { Verifcation } from './entities/verification.entity';
-import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
+import { VerifyEmailOutput } from './dtos/verify-email.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -22,6 +23,7 @@ export class UsersService {
     private readonly verifRepository: Repository<Verifcation>,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
+    private readonly mail: MailService,
   ) {}
 
   async createAccount(
@@ -37,11 +39,13 @@ export class UsersService {
         this.usersRepository.create({ email, password, role }),
       );
       // create verification code
-      this.verifRepository.save(
+      const verification = await this.verifRepository.save(
         this.verifRepository.create({
           user,
         }),
       );
+      // send verification email
+      this.mail.sendVerificationEmail(user.email, verification.code);
       // create token
       const token = this.jwt.sign(user.id);
       // send token via cookie
@@ -125,11 +129,11 @@ export class UsersService {
         // reset verified status
         user.verified = false;
         // create verification code
-        this.verifRepository.save(
-          this.verifRepository.create({
-            user,
-          }),
+        const verification = await this.verifRepository.save(
+          this.verifRepository.create({ user }),
         );
+        // send email
+        this.mail.sendVerificationEmail(user.email, verification.code);
       }
 
       if (password) {
@@ -155,20 +159,22 @@ export class UsersService {
 
   async verifyEmail(code: string): Promise<VerifyEmailOutput> {
     try {
-      const verification = await this.verifRepository.findOne({code}, {relations: ['user']});
-      if(verification) {
+      const verification = await this.verifRepository.findOne(
+        { code },
+        { relations: ['user'] },
+      );
+      if (verification) {
         verification.user.verified = true;
         await this.usersRepository.save(verification.user);
         await this.verifRepository.delete(verification.id);
-        return {success: true}
+        return { success: true };
       }
-      return {success: false, error: 'Unable to Verify Email'}
+      return { success: false, error: 'Unable to Verify Email' };
     } catch (error) {
       return {
         success: false,
-        error
-      }
+        error,
+      };
     }
-
   }
 }

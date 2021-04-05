@@ -7,12 +7,12 @@ import { v4 as uuidv4 } from 'uuid';
 @InputType({ isAbstract: true })
 @ObjectType()
 @Entity()
-export class Verifcation extends CoreEntity {
+export class Verification extends CoreEntity {
   @Column()
   @Field(type => String)
   code: string;
 
-  @OneToOne(type => User, {onDelete: "CASCADE"})
+  @OneToOne(type => User, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
 

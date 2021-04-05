@@ -8,7 +8,7 @@ import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
 import { JwtMiddleware } from './jwt/jwt.middleware';
-import { Verifcation } from './users/entities/verification.entity';
+import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
 
 @Module({
@@ -39,7 +39,7 @@ import { MailModule } from './mail/mail.module';
       database: process.env.DB_NAME,
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV !== 'production',
-      entities: [User, Verifcation],
+      entities: [User, Verification],
     }),
     GraphQLModule.forRoot({
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),

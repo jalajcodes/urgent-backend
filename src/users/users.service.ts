@@ -11,7 +11,7 @@ import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { cookieOptions } from './users.config';
 import { CoreOutput } from 'src/common/dtos/core.dto';
-import { Verifcation } from './entities/verification.entity';
+import { Verification } from './entities/verification.entity';
 import { VerifyEmailOutput } from './dtos/verify-email.dto';
 import { MailService } from 'src/mail/mail.service';
 
@@ -19,16 +19,15 @@ import { MailService } from 'src/mail/mail.service';
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
-    @InjectRepository(Verifcation)
-    private readonly verifRepository: Repository<Verifcation>,
-    private readonly config: ConfigService,
-    private readonly jwt: JwtService,
-    private readonly mail: MailService,
+    @InjectRepository(Verification)
+    private readonly verifRepository: Repository<Verification>,
+    private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async createAccount(
     { email, password, role }: CreateAccountInput,
-    res: Response,
+    res,
   ): Promise<CreateAccountOutput> {
     try {
       const exists = await this.usersRepository.findOne({ email });
@@ -45,9 +44,9 @@ export class UsersService {
         }),
       );
       // send verification email
-      this.mail.sendVerificationEmail(user.email, verification.code);
+      this.mailService.sendVerificationEmail(user.email, verification.code);
       // create token
-      const token = this.jwt.sign(user.id);
+      const token = this.jwtService.sign(user.id);
       // send token via cookie
       res.cookie('token', token, cookieOptions);
 
@@ -62,7 +61,7 @@ export class UsersService {
     }
   }
 
-  async login({ email, password }: LoginInput, res: Response): Promise<LoginOutput> {
+  async login({ email, password }: LoginInput, res): Promise<LoginOutput> {
     try {
       const user = await this.usersRepository.findOne(
         { email },
@@ -71,7 +70,7 @@ export class UsersService {
       if (!user) return { success: false, error: 'Invalid Credentials' };
       const passwordMatches = await user.checkPassword(password);
       if (!passwordMatches) return { success: false, error: 'Invalid Credentials' };
-      const token = this.jwt.sign(user.id);
+      const token = this.jwtService.sign(user.id);
       res.cookie('token', token, cookieOptions);
       return {
         success: true,
@@ -80,35 +79,26 @@ export class UsersService {
       };
     } catch (error) {
       return {
-        error,
+        error: "Can't log user in.",
         success: false,
       };
     }
   }
 
-  logout(res: Response): CoreOutput {
-    try {
-      res.clearCookie('token');
-      return {
-        success: true,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error,
-      };
-    }
+  logout(res): CoreOutput {
+    res.clearCookie('token');
+    return {
+      success: true,
+    };
   }
 
   async findById(id: number): Promise<UserProfileOutput> {
     try {
-      const user = await this.usersRepository.findOne({ id });
-      if (user) {
-        return {
-          success: true,
-          user,
-        };
-      }
+      const user = await this.usersRepository.findOneOrFail({ id });
+      return {
+        success: true,
+        user,
+      };
     } catch (error) {
       return {
         success: false,
@@ -126,14 +116,14 @@ export class UsersService {
 
       if (email) {
         user.email = email;
-        // reset verified status
+        // reset verified status, because user changed email
         user.verified = false;
         // create verification code
         const verification = await this.verifRepository.save(
           this.verifRepository.create({ user }),
         );
-        // send email
-        this.mail.sendVerificationEmail(user.email, verification.code);
+        // send verification code in email
+        this.mailService.sendVerificationEmail(user.email, verification.code);
       }
 
       if (password) {
@@ -152,7 +142,7 @@ export class UsersService {
     } catch (error) {
       return {
         success: false,
-        error,
+        error: 'Unable to update profile',
       };
     }
   }
@@ -169,11 +159,11 @@ export class UsersService {
         await this.verifRepository.delete(verification.id);
         return { success: true };
       }
-      return { success: false, error: 'Unable to Verify Email' };
+      return { success: false, error: 'Verification not found.' };
     } catch (error) {
       return {
         success: false,
-        error,
+        error: 'Could not verify email.',
       };
     }
   }
